@@ -1,0 +1,29 @@
+sudo: required
+services:
+  - docker
+
+#Building image for testing
+before_install:
+  - docker build -t nealshen/react-test -f ./client/Dockerfile.dev ./client
+
+#Executing testing script
+#"-- --coverage" means that test script eventually ends with either zero or without zero
+script:
+  - docker run nealshen/react-test npm test -- --coverage
+
+after_success:
+  #Build docker image
+  - docker build -t nealshen/multi-client ./client
+  - docker build -t nealshen/multi-nginx ./nginx
+  - docker build -t nealshen/multi-server ./server
+  - docker build -t nealshen/multi-worker ./worker
+
+  #Sign in docker
+  - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_ID" --password-stdin
+
+  #Take those images and push them to docker hub
+  - docker push nealshen/multi-client
+  - docker push nealshen/multi-nginx
+  - docker push nealshen/multi-server
+  - docker push nealshen/multi-worker
+
